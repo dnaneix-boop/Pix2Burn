@@ -111,4 +111,4 @@ Released under the MIT License: see the [LICENSE](LICENSE) file. The logo (`logo
 
 The dithering algorithms used are classic, long-published methods: Floyd-Steinberg, Atkinson, Jarvis-Judice-Ninke, Stucki and Bayer. Pix2Burn is an independent project and is not affiliated with any other engraving or image-preparation software.
 
-Author: [YOUR NAME] — [REPOSITORY-URL]
+Author: Didier
