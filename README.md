@@ -110,4 +110,5 @@ Distribué sous licence MIT : voir le fichier [LICENSE](LICENSE). Le logo (`logo
 
 Les algorithmes de tramage utilisés sont des méthodes classiques, publiées de longue date : Floyd-Steinberg, Atkinson, Jarvis-Judice-Ninke, Stucki et Bayer. Pix2Burn est un projet indépendant, sans lien avec aucun autre logiciel de gravure ou de préparation d'images.
 
-Auteur : [VOTRE NOM] — [URL-DU-DEPOT]
+Auteur : Didier 
+
