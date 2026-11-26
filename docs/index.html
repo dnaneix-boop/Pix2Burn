@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pix2burn — Photo to Laser Engraving & G-code</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #f97316;
+            --accent-hover: #ea580c;
+            --border: #334155;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        header {
+            padding: 25px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            gap: 15px;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .logo span {
+            color: var(--accent);
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .lang-switch {
+            display: flex;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 3px;
+            gap: 4px;
+        }
+        .lang-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .lang-btn:hover {
+            color: var(--text-main);
+        }
+        .lang-btn.active {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .flag-icon {
+            width: 18px;
+            height: 13px;
+            border-radius: 2px;
+            display: block;
+        }
+        .github-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .github-link:hover {
+            color: var(--text-main);
+            border-color: var(--text-main);
+        }
+        .hero {
+            text-align: center;
+            padding: 60px 0 30px;
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(249, 115, 22, 0.15);
+            color: var(--accent);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 2.8rem;
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 680px;
+            margin: 0 auto 20px;
+        }
+        .screenshot-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 30px auto 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .screenshot-box img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            cursor: zoom-in;
+        }
+        .screenshot-placeholder {
+            padding: 90px 20px;
+            text-align: center;
+            color: var(--text-muted);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+        }
+        .mini-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 45px;
+        }
+        .mini-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px;
+            transition: all 0.2s;
+            cursor: zoom-in;
+        }
+        .mini-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        .mini-card img {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            border-radius: 6px;
+            display: block;
+        }
+        .mini-placeholder {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+        }
+        .mini-caption {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.92);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            cursor: zoom-out;
+        }
+        .lightbox.open {
+            display: flex;
+        }
+        .lightbox img {
+            max-width: 95%;
+            max-height: 90vh;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        }
+        .downloads {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 35px;
+            margin: 40px 0;
+            text-align: center;
+        }
+        .downloads h2 {
+            margin-bottom: 10px;
+        }
+        .downloads p {
+            color: var(--text-muted);
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+        }
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .btn-dl {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            text-decoration: none;
+            padding: 18px 15px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .btn-dl:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        .btn-dl strong {
+            font-size: 1.05rem;
+            margin-bottom: 4px;
+        }
+        .btn-dl span {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .btn-dl.primary {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+        .btn-dl.primary span {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .btn-dl.primary:hover {
+            background-color: var(--accent-hover);
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            margin: 50px 0;
+        }
+        .feature-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: 10px;
+        }
+        .feature-card h3 {
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-size: 1.15rem;
+        }
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        @media (max-width: 700px) {
+            h1 { font-size: 2rem; }
+            header { flex-wrap: wrap; }
+            .mini-gallery { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="logo">Pix<span>2</span>burn</div>
+
+            <div class="header-actions">
+                <div class="lang-switch">
+                    <button class="lang-btn active" id="btn-fr" onclick="setLanguage('fr')" title="Français">
+                        <svg class="flag-icon" viewBox="0 0 3 2">
+                            <rect width="1" height="2" x="0" fill="#002395"/>
+                            <rect width="1" height="2" x="1" fill="#ffffff"/>
+                            <rect width="1" height="2" x="2" fill="#ed2939"/>
+                        </svg>
+                        FR
+                    </button>
+                    <button class="lang-btn" id="btn-en" onclick="setLanguage('en')" title="English">
+                        <svg class="flag-icon" viewBox="0 0 60 30">
+                            <rect width="60" height="30" fill="#012169"/>
+                            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+                            <path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/>
+                            <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/>
+                        </svg>
+                        EN
+                    </button>
+                </div>
+
+                <a href="https://github.com/VOTRE-PSEUDO/Pix2burn" class="github-link" target="_blank" data-i18n="github_btn">Voir sur GitHub</a>
+            </div>
+        </header>
+
+        <section class="hero">
+            <div class="badge" data-i18n="badge">Gratuit & Multiplateforme</div>
+            <h1 data-i18n="hero_title">De votre photo au G-code prêt à graver</h1>
+            <p class="subtitle" data-i18n="hero_subtitle">
+                Pix2burn simplifie tout le flux de gravure laser : préparez vos images, ajustez les contrastes, générez le G-code et pilotez directement votre graveur.
+            </p>
+        </section>
+
+        <div class="screenshot-box">
+            <img src="screenshot.png" alt="Interface de Pix2burn" onclick="openLightbox('screenshot.png')">
+        </div>
+        </div>
+
+               <div class="mini-gallery">
+            <div class="mini-card">
+                <img src="screen-1.png" alt="Retouche et tramage" onclick="openLightbox('screen-1.png')">
+                <div class="mini-caption" data-i18n="cap_1">Retouche & tramage</div>
+            </div>
+            <div class="mini-card">
+                <img src="screen-2.png" alt="Réglages G-code" onclick="openLightbox('screen-2.png')">
+                <div class="mini-caption" data-i18n="cap_2">Réglages G-code</div>
+            </div>
+            <div class="mini-card">
+                <img src="screen-3.png" alt="Pilotage du laser" onclick="openLightbox('screen-3.png')">
+                <div class="mini-caption" data-i18n="cap_3">Pilotage du laser</div>
+            </div>
+        </div>
+
+        <section class="downloads" id="telecharger">
+            <h2 data-i18n="dl_title">Télécharger Pix2burn</h2>
+            <p data-i18n="dl_subtitle">Sélectionnez la version adaptée à votre système d'exploitation (v1.0)</p>
+
+            <div class="download-grid">
+                <a href="#" class="btn-dl primary">
+                    <strong>Windows</strong>
+                    <span>64-bit (.exe / .zip)</span>
+                </a>
+                <a href="#" class="btn-dl">
+                    <strong>macOS (Apple Silicon)</strong>
+                    <span data-i18n="mac_arm">Puces M1, M2, M3, M4 (.dmg)</span>
+                </a>
+                <a href="#" class="btn-dl">
+                    <strong>macOS (Intel)</strong>
+                    <span data-i18n="mac_intel">Processeurs Intel (.dmg)</span>
+                </a>
+                <a href="#" class="btn-dl">
+                    <strong>Linux</strong>
+                    <span>AppImage / .deb</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="feature-card">
+                <h3 data-i18n="feat1_title">1. Préparation d'image</h3>
+                <p data-i18n="feat1_desc">Recadrage, redimensionnement, gestion des niveaux de gris et tramage (dithering) optimisés pour le rendu laser sur bois, ardoise ou métal.</p>
+            </div>
+            <div class="feature-card">
+                <h3 data-i18n="feat2_title">2. Génération G-code</h3>
+                <p data-i18n="feat2_desc">Réglage précis de la puissance, de la vitesse et de la résolution (DPI) pour produire un fichier G-code propre et fiable.</p>
+            </div>
+            <div class="feature-card">
+                <h3 data-i18n="feat3_title">3. Envoi au graveur</h3>
+                <p data-i18n="feat3_desc">Connexion directe à votre machine laser pour prévisualiser le cadrage et lancer la gravure sans changer de logiciel.</p>
+            </div>
+        </section>
+
+        <footer>
+            <p>
+                <span data-i18n="footer_text">Pix2burn — Logiciel gratuit.</span>
+                <a href="https://github.com/VOTRE-PSEUDO/Pix2burn/issues" target="_blank" data-i18n="footer_link">Signaler un bug ou proposer une idée</a>
+            </p>
+        </footer>
+    </div>
+
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="Aperçu agrandi">
+    </div>
+
+    <script>
+        const translations = {
+            fr: {
+                github_btn: "Voir sur GitHub",
+                badge: "Gratuit & Multiplateforme",
+                hero_title: "De votre photo au G-code prêt à graver",
+                hero_subtitle: "Pix2burn simplifie tout le flux de gravure laser : préparez vos images, ajustez les contrastes, générez le G-code et pilotez directement votre graveur.",
+                screenshot_hint: "📸 Capture principale : <strong>screenshot.png</strong><br><small>(Cliquez sur les images pour les agrandir une fois ajoutées)</small>",
+                cap_1: "Retouche & tramage",
+                cap_2: "Réglages G-code",
+                cap_3: "Pilotage du laser",
+                dl_title: "Télécharger Pix2burn",
+                dl_subtitle: "Sélectionnez la version adaptée à votre système d'exploitation (v1.0)",
+                mac_arm: "Puces M1, M2, M3, M4 (.dmg)",
+                mac_intel: "Processeurs Intel (.dmg)",
+                feat1_title: "1. Préparation d'image",
+                feat1_desc: "Recadrage, redimensionnement, gestion des niveaux de gris et tramage (dithering) optimisés pour le rendu laser sur bois, ardoise ou métal.",
+                feat2_title: "2. Génération G-code",
+                feat2_desc: "Réglage précis de la puissance, de la vitesse et de la résolution (DPI) pour produire un fichier G-code propre et fiable.",
+                feat3_title: "3. Envoi au graveur",
+                feat3_desc: "Connexion directe à votre machine laser pour prévisualiser le cadrage et lancer la gravure sans changer de logiciel.",
+                footer_text: "Pix2burn — Logiciel gratuit.",
+                footer_link: "Signaler un bug ou proposer une idée"
+            },
+            en: {
+                github_btn: "View on GitHub",
+                badge: "Free & Cross-Platform",
+                hero_title: "From photo to ready-to-burn G-code",
+                hero_subtitle: "Pix2burn streamlines your entire laser engraving workflow: prepare your images, adjust contrast, generate G-code, and send it straight to your engraver.",
+                screenshot_hint: "📸 Main screenshot: <strong>screenshot.png</strong><br><small>(Click images to zoom in once added)</small>",
+                cap_1: "Editing & dithering",
+                cap_2: "G-code settings",
+                cap_3: "Laser control",
+                dl_title: "Download Pix2burn",
+                dl_subtitle: "Choose the version for your operating system (v1.0)",
+                mac_arm: "M1, M2, M3, M4 chips (.dmg)",
+                mac_intel: "Intel processors (.dmg)",
+                feat1_title: "1. Image Preparation",
+                feat1_desc: "Crop, resize, grayscale tuning, and dithering algorithms optimized for laser engraving on wood, slate, or metal.",
+                feat2_title: "2. G-code Generation",
+                feat2_desc: "Fine-tune laser power, speed, and resolution (DPI) to generate clean and reliable G-code files.",
+                feat3_title: "3. Direct Engraving",
+                feat3_desc: "Connect directly to your laser machine to preview framing and start burning without switching software.",
+                footer_text: "Pix2burn — Free software.",
+                footer_link: "Report a bug or request a feature"
+            }
+        };
+
+        function setLanguage(lang) {
+            document.documentElement.lang = lang;
+            document.getElementById('btn-fr').classList.toggle('active', lang === 'fr');
+            document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+        }
+
+        function openLightbox(src) {
+            document.getElementById('lightbox-img').src = src;
+            document.getElementById('lightbox').classList.add('open');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('open');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const userLang = navigator.language || navigator.userLanguage;
+            if (!userLang.toLowerCase().startsWith('fr')) {
+                setLanguage('en');
+            }
+        });
+    </script>
+
+</body>
+</html>
