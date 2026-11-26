@@ -1,10 +1,10 @@
 {
   "name": "pix2burn",
   "productName": "Pix2Burn",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Préparation d'images pour la gravure laser, G-code et envoi USB vers une machine GRBL",
   "main": "main.js",
-  "homepage": "https://github.com/VOTRE-COMPTE/pix2burn",
+  "homepage": "https://github.com/dnaneix-boop/pix2burn",
   "author": "DIDIER"
   "license": "MIT",
   "private": true,
