@@ -67,4 +67,14 @@
     "electron": "^43.8.8",
     "electron-builder": "^26.18.0"
   }
+  "build": {
+  "appId": "io.github.VOTRE-NOM.pix2burn",
+  "productName": "Pix2Burn",
+  "mac": {
+    "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+    "category": "public.app-category.graphics-design"
+  },
+  "win": { "target": "nsis" },
+  "linux": { "target": ["AppImage"], "category": "Graphics" }
+}
 }
