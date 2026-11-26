@@ -1,5 +1,8 @@
 name: Build installateurs
 on:
+  workflow_dispatch:
+  release:
+    types: [published]
   push:
     tags: ['v*']
 permissions:
@@ -7,6 +10,7 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
