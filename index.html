@@ -1,0 +1,913 @@
+<!doctype html>
+<!--
+  Pix2Burn : préparation d'images pour la gravure laser (tramage, G-code, envoi USB vers une machine GRBL).
+  Copyright (c) 2026 [VOTRE NOM] : licence MIT, voir le fichier LICENSE.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pix2Burn : préparation d'images pour la gravure laser</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJQaXgyQnVybiI+CiAgPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiM2ZDI4ZDkiLz4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNTYgMjU2KSBzY2FsZSgxLjEyKSB0cmFuc2xhdGUoLTI1NiAtMjU2KSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjQ4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogICAgPHBhdGggZD0iTTkwIDMzNlYxNzZIMTIyQTM2IDM2IDAgMCAxIDEyMiAyNDhIOTAiLz4KICAgIDxwYXRoIGQ9Ik0yMTggMjEwQTM0IDM0IDAgMCAxIDI4NiAyMTBMMjE4IDMzNkgyOTAiLz4KICAgIDxwYXRoIGQ9Ik0zNTAgMzM2VjE3NkgzNzhBMzggMzggMCAwIDEgMzc4IDI1MkgzNTBNMzc4IDI1MkE0MiA0MiAwIDAgMSAzNzggMzM2SDM1MCIvPgogIDwvZz4KPC9zdmc+Cg==">
+<style>
+  :root {
+    --panel: #f6f4fb; --ink: #1f1a33; --muted: #6a6482; --line: #d9d4e8;
+    --accent: #6d28d9; --accent-ink: #ffffff; --bed: #1b1830; --hh: 56px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); display: grid; grid-template-columns: 340px 1fr; grid-template-rows: var(--hh) 1fr; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); padding: 20px; overflow-y: auto; min-height: 0; }
+  h1 { font-size: 18px; margin: 0; font-weight: 650; display: flex; align-items: center; gap: 10px; }
+  .logo { display: block; border-radius: 8px; }
+  .tag { color: #b9aee6; font-size: 13px; font-weight: 400; }
+  header { grid-column: 1 / -1; height: var(--hh); background: #2b2150; color: #fff; display: flex; align-items: center; gap: 24px; padding: 0 20px; }
+  .tabs { display: flex; gap: 6px; }
+  .tab { background: transparent; color: #e6e0ff; border: 1px solid #6b5fa5; border-radius: 999px; padding: 7px 16px; font-weight: 600; }
+  .tabs .tab:hover:not(:disabled) { background: rgba(255, 255, 255, .14); border-color: #a78bfa; color: #fff; }
+  .tabs .tab:active:not(:disabled) { background: #a78bfa; color: #1f1a33; border-color: #a78bfa; transform: none; }
+  .tabs .tab.sel, .tabs .tab.sel:hover:not(:disabled) { background: #fff; color: var(--accent); border-color: #fff; }
+  .hstate { margin-left: auto; font-size: 13px; color: #d8d2f0; font-variant-numeric: tabular-nums; }
+  .next { margin: 14px 0 4px; }
+  #zbar { position: sticky; top: 0; z-index: 4; flex: none; display: flex; gap: 6px; align-items: center; justify-content: center; padding: 8px; background: rgba(27, 24, 48, .92); }
+  #zbar.hidden { display: none; }
+  #zbar button { padding: 5px 12px; background: #2b2150; color: #e6e0ff; border-color: #6b5fa5; }
+  #zbar button:hover:not(:disabled) { background: #3a2d6e; border-color: #a78bfa; color: #fff; }
+  #zbar button:active:not(:disabled), #zbar button.flash { background: #a78bfa; border-color: #a78bfa; color: #1f1a33; }
+  #z-val { color: #d8d2f0; font-size: 13px; min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; }
+  @media (max-width: 1150px) { .tag { display: none; } }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 13px; }
+  fieldset { border: 0; border-top: 1px solid var(--line); margin: 0; padding: 14px 0 6px; }
+  legend { font-weight: 600; padding: 0 8px 0 0; }
+  .row { margin-bottom: 12px; }
+  .row label { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .row output { color: var(--muted); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  input[type=number], select { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font: inherit; }
+  .check { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  button { font: inherit; padding: 9px 14px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; width: 100%; margin-top: 6px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button { transition: background .15s, color .15s, border-color .15s, transform .05s; }
+  button:hover:not(:disabled) { background: #ede9fe; border-color: #c4b5fd; }
+  button:active:not(:disabled) { background: var(--accent); border-color: var(--accent); color: #fff; transform: translateY(1px); }
+  button.flash { background: #ddd6fe; border-color: #a78bfa; }
+  button.primary:hover:not(:disabled) { background: #5b21b6; border-color: #5b21b6; color: #fff; }
+  button.primary:active:not(:disabled), button.primary.flash { background: #4c1d95; border-color: #4c1d95; color: #fff; }
+  button.on, button.on:hover:not(:disabled) { background: #15803d; border-color: #15803d; color: #fff; }
+  :focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+  .info { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 2.8em; }
+  main { background: var(--bed); min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+  #drop { margin: auto; max-width: 420px; padding: 36px; text-align: center; color: #d8d2f0; border: 2px dashed #6b6490; border-radius: 10px; }
+  #drop.over { border-color: #c4b5fd; color: #fff; }
+  #wrap { margin: auto; padding: 40px; display: none; }
+  #out { display: block; max-width: none; background: #fff; outline: 3px solid #a78bfa; outline-offset: 8px; cursor: grab; }
+  .hidden { display: none; }
+  .note { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+  .btns { display: flex; gap: 8px; margin-bottom: 12px; }
+  .btns button { flex: 1; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .jog { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+  .stop, .stop.flash { background: #b91c1c; border-color: #b91c1c; color: #fff; font-weight: 700; }
+  button.stop:hover:not(:disabled) { background: #991b1b; border-color: #991b1b; color: #fff; }
+  button.stop:active:not(:disabled) { background: #7f1d1d; border-color: #7f1d1d; color: #fff; }
+  progress { accent-color: var(--accent); }
+  #cropper { position: fixed; left: 340px; top: var(--hh); right: 0; bottom: 0; z-index: 10; background: #120f24; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; overflow: auto; }
+  #cropper.hidden { display: none; }
+  .cbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: #d8d2f0; }
+  .cbar button.primary { width: auto; margin: 0; }
+  #cstage { position: relative; overflow: hidden; line-height: 0; flex: none; touch-action: none; }
+  #cc { display: block; }
+  #cbox { position: absolute; border: 2px solid #fff; box-shadow: 0 0 0 9999px rgba(10, 8, 25, .62); cursor: move; touch-action: none; }
+  #cbox i { position: absolute; width: 18px; height: 18px; background: #fff; border: 2px solid var(--accent); }
+  #cbox i[data-h=nw] { left: 0; top: 0; cursor: nwse-resize; }
+  #cbox i[data-h=ne] { right: 0; top: 0; cursor: nesw-resize; }
+  #cbox i[data-h=sw] { left: 0; bottom: 0; cursor: nesw-resize; }
+  #cbox i[data-h=se] { right: 0; bottom: 0; cursor: nwse-resize; }
+  @media (max-width: 800px) {
+    body { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+    header { height: auto; flex-wrap: wrap; gap: 8px 16px; padding: 8px 12px; }
+    #cropper { left: 0; top: 0; }
+    main { min-height: 70vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="brand"><img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJQaXgyQnVybiI+CiAgPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiM2ZDI4ZDkiLz4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNTYgMjU2KSBzY2FsZSgxLjEyKSB0cmFuc2xhdGUoLTI1NiAtMjU2KSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjQ4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogICAgPHBhdGggZD0iTTkwIDMzNlYxNzZIMTIyQTM2IDM2IDAgMCAxIDEyMiAyNDhIOTAiLz4KICAgIDxwYXRoIGQ9Ik0yMTggMjEwQTM0IDM0IDAgMCAxIDI4NiAyMTBMMjE4IDMzNkgyOTAiLz4KICAgIDxwYXRoIGQ9Ik0zNTAgMzM2VjE3NkgzNzhBMzggMzggMCAwIDEgMzc4IDI1MkgzNTBNMzc4IDI1MkE0MiA0MiAwIDAgMSAzNzggMzM2SDM1MCIvPgogIDwvZz4KPC9zdmc+Cg==" alt="" width="34" height="34"><span>Pix2Burn</span><span class="tag">préparation d'images pour la gravure laser</span></h1>
+  <nav class="tabs" role="tablist" aria-label="Étapes">
+    <button class="tab sel" type="button" role="tab" data-tab="prep" aria-selected="true">1 · Image</button>
+    <button class="tab" type="button" role="tab" data-tab="gcode" aria-selected="false">2 · G-code</button>
+    <button class="tab" type="button" role="tab" data-tab="machine" aria-selected="false">3 · Machine</button>
+  </nav>
+  <span class="hstate" id="hstate"></span>
+  <button id="s-stop2" class="stop hidden" type="button">ARRÊT</button>
+</header>
+<aside>
+<section class="pane" data-pane="prep">
+  <p class="sub">Tout se passe dans votre navigateur : l'image n'est envoyée nulle part.</p>
+
+  <div class="row">
+    <label for="file">Image à préparer</label>
+    <input type="file" id="file" accept="image/*">
+  </div>
+
+  <fieldset>
+    <legend>Matériau</legend>
+    <div class="row">
+      <label for="preset">Préréglage</label>
+      <select id="preset">
+        <option value="custom">Personnalisé</option>
+        <option value="bois-clair">Bois clair (peuplier, bouleau)</option>
+        <option value="bois-fonce">Bois foncé ou MDF</option>
+        <option value="cuir">Cuir</option>
+        <option value="carton">Carton et papier</option>
+        <option value="ardoise">Ardoise et pierre</option>
+        <option value="verre">Verre</option>
+        <option value="acrylique">Acrylique (gravure par l'arrière)</option>
+        <option value="metal">Aluminium anodisé</option>
+      </select>
+    </div>
+    <p class="note">Points de départ approximatifs, à ajuster : faites toujours un essai sur une chute. Noir = le laser grave.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Taille</legend>
+    <div class="row two">
+      <div><label for="width">Largeur (mm)</label>
+        <input type="number" id="width" value="100" min="5" max="1000" step="0.5"></div>
+      <div><label for="height">Hauteur (mm)</label>
+        <input type="number" id="height" value="100" min="5" max="1000" step="0.5"></div>
+    </div>
+    <div class="check"><input type="checkbox" id="lock" checked><label for="lock">Conserver les proportions</label></div>
+    <button id="crop" type="button" style="width:100%;margin-bottom:12px">Recadrer l'image…</button>
+    <div class="row">
+      <label for="dpi">Résolution (distance entre deux lignes)</label>
+      <select id="dpi">
+        <option value="127">127 dpi (0,20 mm)</option>
+        <option value="169">169 dpi (0,15 mm)</option>
+        <option value="254" selected>254 dpi (0,10 mm)</option>
+        <option value="339">339 dpi (0,075 mm)</option>
+        <option value="508">508 dpi (0,05 mm)</option>
+      </select>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Orientation</legend>
+    <div class="btns">
+      <button id="rotl" type="button">Pivoter à gauche</button>
+      <button id="rotr" type="button">Pivoter à droite</button>
+    </div>
+    <div class="row"><label for="angle">Redressement <output id="o-angle">0.0°</output></label>
+      <input type="range" id="angle" min="-45" max="45" step="0.5" value="0"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Tons</legend>
+    <div class="row"><label for="brightness">Luminosité <output id="o-brightness">0</output></label>
+      <input type="range" id="brightness" min="-100" max="100" step="1" value="0"></div>
+    <div class="row"><label for="contrast">Contraste <output id="o-contrast">0</output></label>
+      <input type="range" id="contrast" min="-100" max="100" step="1" value="0"></div>
+    <div class="row"><label for="gamma">Gamma <output id="o-gamma">1.00</output></label>
+      <input type="range" id="gamma" min="0.3" max="3" step="0.05" value="1"></div>
+    <div class="row"><label for="sharpen">Netteté <output id="o-sharpen">0.0</output></label>
+      <input type="range" id="sharpen" min="0" max="3" step="0.1" value="0"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Tramage</legend>
+    <div class="row">
+      <label for="method">Méthode</label>
+      <select id="method">
+        <option value="fs">Floyd-Steinberg</option>
+        <option value="atkinson">Atkinson (contrasté, bon pour les visages)</option>
+        <option value="jarvis">Jarvis-Judice-Ninke</option>
+        <option value="stucki">Stucki</option>
+        <option value="bayer">Ordonné (Bayer 4×4)</option>
+        <option value="threshold">Seuil simple</option>
+        <option value="gray">Niveaux de gris (sans tramage)</option>
+      </select>
+    </div>
+    <div class="row hidden" id="thr-row"><label for="threshold">Seuil <output id="o-threshold">128</output></label>
+      <input type="range" id="threshold" min="1" max="254" step="1" value="128"></div>
+    <div class="check"><input type="checkbox" id="invert"><label for="invert">Inverser (noir ↔ blanc)</label></div>
+    <div class="check"><input type="checkbox" id="flip"><label for="flip">Miroir horizontal</label></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Aperçu et export</legend>
+    <button id="reset" type="button">Réinitialiser les réglages</button>
+    <div class="row" style="margin-top:12px">
+      <label for="fmt">Format d'export</label>
+      <select id="fmt">
+        <option value="png">PNG</option>
+        <option value="bmp1">BMP 1 bit (noir et blanc, le plus léger)</option>
+        <option value="bmp8">BMP 8 bits (niveaux de gris)</option>
+        <option value="bmp24">BMP 24 bits (couleur)</option>
+        <option value="jpg">JPEG (déconseillé après tramage)</option>
+      </select>
+    </div>
+    <button id="export" class="primary" type="button" disabled>Enregistrer l'image</button>
+    <div class="info" id="info" aria-live="polite">Choisissez une image pour commencer.</div>
+  </fieldset>
+  <button class="primary next" type="button" data-go="gcode">Suivant : G-code →</button>
+</section>
+
+<section class="pane hidden" data-pane="gcode">
+  <fieldset>
+    <legend>Laser (G-code)</legend>
+    <div class="row two">
+      <div><label for="g-feed">Vitesse (mm/min)</label><input type="number" id="g-feed" value="3000" min="100" max="30000" step="100"></div>
+      <div><label for="g-pct">Puissance (%)</label><input type="number" id="g-pct" value="25" min="0" max="100" step="1"></div>
+    </div>
+    <div class="row two">
+      <div><label for="g-smax">S max (réglage $30)</label><input type="number" id="g-smax" value="1000" min="1" max="10000"></div>
+      <div><label for="g-ov">Dépassement (mm)</label><input type="number" id="g-ov" value="2" min="0" max="20" step="0.5"></div>
+    </div>
+    <div class="row two">
+      <div><label for="g-pass">Passes</label><input type="number" id="g-pass" value="1" min="1" max="20"></div>
+      <div></div>
+    </div>
+    <div class="check"><input type="checkbox" id="g-bidi" checked><label for="g-bidi">Balayage aller-retour</label></div>
+    <div class="check"><input type="checkbox" id="g-m4" checked><label for="g-m4">Mode dynamique (M4)</label></div>
+    <div class="check"><input type="checkbox" id="g-flipy"><label for="g-flipy">Inverser l'axe Y</label></div>
+    <div class="check"><input type="checkbox" id="g-dry"><label for="g-dry">Test à blanc (laser éteint)</label></div>
+    <button id="g-save" type="button" style="width:100%" disabled>Enregistrer le G-code</button>
+    <p class="note" id="g-info" style="margin-top:10px">Zéro = coin bas-gauche de l'image. Pour reprendre vos réglages LightBurn : vitesse en mm/s × 60, puissance en % identique.</p>
+  </fieldset>
+
+  <button class="primary next" type="button" data-go="machine">Suivant : Machine →</button>
+</section>
+
+<section class="pane hidden" data-pane="machine">
+  <fieldset>
+    <legend>Envoyer à la machine (USB)</legend>
+    <p class="note">Chrome ou Edge (ou Firefox 151 et plus). Faites d'abord un test à blanc et ne laissez jamais le laser sans surveillance.</p>
+    <button id="s-conn" type="button" style="width:100%">Connecter la machine</button>
+    <div class="info" id="s-state">Non connecté.</div>
+    <p class="note" id="s-msg"></p>
+    <div id="s-ctl" class="hidden">
+      <div class="row"><label for="s-step">Pas de déplacement (mm)</label>
+        <select id="s-step"><option>1</option><option selected>10</option><option>50</option></select></div>
+      <div class="jog">
+        <span></span><button type="button" data-j="Y+">Y +</button><span></span>
+        <button type="button" data-j="X-">X −</button><span></span><button type="button" data-j="X+">X +</button>
+        <span></span><button type="button" data-j="Y-">Y −</button><span></span>
+      </div>
+      <button id="s-hm" type="button" style="width:100%;margin-bottom:8px">Home (retour aux fins de course)</button>
+      <div class="btns">
+        <button id="s-zero" type="button">Définir le zéro ici</button>
+        <button id="s-home" type="button">Aller au zéro pièce</button>
+      </div>
+      <div class="row two">
+        <div><label for="s-fpct">Cadre : puissance (%)</label><input type="number" id="s-fpct" value="0" min="0" max="5" step="0.5"></div>
+        <div style="align-self:end"><button id="s-frame" type="button" style="width:100%">Tracer le cadre</button></div>
+      </div>
+      <button id="s-unlock" type="button" style="width:100%;margin-bottom:8px">Déverrouiller ($X)</button>
+      <div class="check"><input type="checkbox" id="s-gohome" checked><label for="s-gohome">Retour au Home après la gravure</label></div>
+      <button id="s-run" class="primary" type="button">Lancer la gravure</button>
+      <progress id="s-prog" value="0" max="100" style="width:100%;margin-top:8px"></progress>
+      <div class="btns" style="margin-top:8px">
+        <button id="s-pause" type="button" disabled>Pause</button>
+        <button id="s-stop" class="stop" type="button">ARRÊT</button>
+      </div>
+      <details style="margin-top:12px">
+        <summary>Console</summary>
+        <pre id="s-log" style="height:130px;overflow:auto;white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px;font-size:12px;margin:8px 0"></pre>
+        <div class="btns">
+          <input id="s-cmd" type="text" placeholder="Commande GRBL (ex. $$)" aria-label="Commande GRBL" style="flex:3;padding:7px 8px;border:1px solid var(--line);border-radius:6px;font:inherit">
+          <button id="s-send" type="button">Envoyer</button>
+        </div>
+      </details>
+    </div>
+  </fieldset>
+</section>
+</aside>
+
+<main id="main">
+  <div id="zbar" class="hidden">
+    <button id="z-out" type="button" aria-label="Dézoomer">−</button>
+    <button id="z-in" type="button" aria-label="Zoomer">+</button>
+    <button id="z-fit" type="button">Ajuster</button>
+    <button id="z-100" type="button">100 %</button>
+    <span id="z-val" aria-live="polite"></span>
+  </div>
+  <div id="drop">Déposez une image ici (JPG, PNG, WebP…) ou utilisez le champ « Image à préparer ».</div>
+  <div id="wrap"><canvas id="out"></canvas></div>
+  <div id="cropper" class="hidden">
+    <div class="cbar">
+      <span id="chint"></span>
+      <button id="cfull" type="button">Image entière</button>
+      <button id="ccancel" type="button">Annuler</button>
+      <button id="capply" class="primary" type="button">Appliquer</button>
+    </div>
+    <div id="cstage"><canvas id="cc"></canvas><div id="cbox"><i data-h="nw"></i><i data-h="ne"></i><i data-h="sw"></i><i data-h="se"></i></div></div>
+  </div>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const out = $('out'), octx = out.getContext('2d');
+  let img = null, name = 'image', timer = null, rot = 0, applying = false, base = null, cr = { x: 0, y: 0, w: 1, h: 1 };
+
+  // Matrices de diffusion d'erreur : [dx, dy, poids], diviseur
+  const KERNELS = {
+    fs:       { d: 16, k: [[1,0,7],[-1,1,3],[0,1,5],[1,1,1]] },
+    atkinson: { d: 8,  k: [[1,0,1],[2,0,1],[-1,1,1],[0,1,1],[1,1,1],[0,2,1]] },
+    jarvis:   { d: 48, k: [[1,0,7],[2,0,5],[-2,1,3],[-1,1,5],[0,1,7],[1,1,5],[2,1,3],[-2,2,1],[-1,2,3],[0,2,5],[1,2,3],[2,2,1]] },
+    stucki:   { d: 42, k: [[1,0,8],[2,0,4],[-2,1,2],[-1,1,4],[0,1,8],[1,1,4],[2,1,2],[-2,2,1],[-1,2,2],[0,2,4],[1,2,2],[2,2,1]] }
+  };
+  const BAYER = [0,8,2,10, 12,4,14,6, 3,11,1,9, 15,7,13,5];
+  const DEFAULTS = { width: 100, height: 100, lock: true, dpi: 254, brightness: 0, contrast: 0, gamma: 1, sharpen: 0, method: 'fs', threshold: 128, invert: false, flip: false, angle: 0 };
+
+  const clamp = (v) => v < 0 ? 0 : v > 255 ? 255 : v;
+
+  function sharpen(g, W, H, amt) {
+    const src = g.slice();
+    for (let y = 0; y < H; y++) {
+      const y0 = Math.max(0, y - 1) * W, y1 = y * W, y2 = Math.min(H - 1, y + 1) * W;
+      for (let x = 0; x < W; x++) {
+        const xa = Math.max(0, x - 1), xb = Math.min(W - 1, x + 1);
+        const blur = (src[y0+xa]+src[y0+x]+src[y0+xb]+src[y1+xa]+src[y1+x]+src[y1+xb]+src[y2+xa]+src[y2+x]+src[y2+xb]) / 9;
+        const i = y1 + x;
+        g[i] = src[i] + amt * (src[i] - blur);
+      }
+    }
+  }
+
+  function diffuse(g, W, H, def) {
+    const res = new Uint8Array(W * H), k = def.k, n = k.length, d = def.d;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x, old = g[i], nv = old < 128 ? 0 : 255;
+        res[i] = nv;
+        const err = old - nv;
+        for (let j = 0; j < n; j++) {
+          const xx = x + k[j][0], yy = y + k[j][1];
+          if (xx >= 0 && xx < W && yy < H) g[yy * W + xx] += err * k[j][2] / d;
+        }
+      }
+    }
+    return res;
+  }
+
+  function process() {
+    if (!img) return;
+    if (!base) buildBase();
+    const dpi = +$('dpi').value, mmW = Math.max(5, +$('width').value || 100);
+    let reg = cr, mmH;
+    if ($('lock').checked) {
+      mmH = mmW * (reg.h * base.height) / (reg.w * base.width);
+      $('height').value = mmH.toFixed(1);
+    } else {
+      mmH = Math.max(5, +$('height').value || 100);
+      reg = fitRatio(reg, (mmW / mmH) / (base.width / base.height));
+    }
+    let W = mmW / 25.4 * dpi, H = mmH / 25.4 * dpi;
+    const sc = Math.min(1, 4000 / Math.max(W, H));
+    W = Math.max(16, Math.round(W * sc)); H = Math.max(16, Math.round(H * sc));
+
+    // 1. Découpe de la zone choisie à la taille de gravure
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const cx = c.getContext('2d', { willReadFrequently: true });
+    cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H);
+    cx.imageSmoothingQuality = 'high';
+    cx.drawImage(base, reg.x * base.width, reg.y * base.height, reg.w * base.width, reg.h * base.height, 0, 0, W, H);
+    const px = cx.getImageData(0, 0, W, H).data;
+
+    // 2. Niveaux de gris (luminance)
+    const g = new Float32Array(W * H);
+    for (let i = 0, p = 0; i < g.length; i++, p += 4) g[i] = 0.2126 * px[p] + 0.7152 * px[p+1] + 0.0722 * px[p+2];
+
+    // 3. Netteté, puis luminosité / contraste / gamma
+    const sh = +$('sharpen').value;
+    if (sh > 0) sharpen(g, W, H, sh);
+    const b = +$('brightness').value, ct = +$('contrast').value, gm = +$('gamma').value;
+    const cf = (259 * (ct + 255)) / (255 * (259 - ct));
+    const inv = $('invert').checked;
+    for (let i = 0; i < g.length; i++) {
+      let v = clamp((g[i] - 128) * cf + 128 + b);
+      v = 255 * Math.pow(v / 255, 1 / gm);
+      g[i] = inv ? 255 - v : v;
+    }
+
+    // 4. Tramage
+    const method = $('method').value;
+    let res;
+    if (KERNELS[method]) res = diffuse(g, W, H, KERNELS[method]);
+    else {
+      res = new Uint8Array(W * H);
+      const t = +$('threshold').value;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        if (method === 'bayer') res[i] = g[i] > (BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16 * 255 ? 255 : 0;
+        else if (method === 'threshold') res[i] = g[i] >= t ? 255 : 0;
+        else res[i] = Math.round(clamp(g[i]));
+      }
+    }
+
+    // 5. Affichage (avec miroir éventuel)
+    out.width = W; out.height = H;
+    const o = octx.createImageData(W, H), flip = $('flip').checked;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const v = res[y * W + (flip ? W - 1 - x : x)], q = (y * W + x) * 4;
+      o.data[q] = o.data[q+1] = o.data[q+2] = v; o.data[q+3] = 255;
+    }
+    octx.putImageData(o, 0, 0);
+    applyZoom();
+
+    $('info').textContent = W + ' × ' + H + ' points, soit ' + mmW.toFixed(1) + ' × ' + mmH.toFixed(1) + ' mm à ' + dpi + ' dpi.' + (sc < 1 ? ' (limité à 4000 points : résolution réduite)' : '');
+    $('export').disabled = false; $('g-save').disabled = false; lastMM = { w: mmW, h: mmH };
+  }
+
+  function schedule() { clearTimeout(timer); timer = setTimeout(process, 120); }
+
+  function loadFile(file) {
+    if (!file || !file.type.startsWith('image/')) { $('info').textContent = 'Ce fichier n\'est pas une image.'; return; }
+    name = file.name.replace(/\.[^.]+$/, '');
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      img = im; rot = 0; base = null; cr = { x: 0, y: 0, w: 1, h: 1 }; zmode = 'fit'; $('zbar').classList.remove('hidden'); $('drop').style.display = 'none'; $('wrap').style.display = 'block';
+      process(); URL.revokeObjectURL(url);
+    };
+    im.onerror = () => { $('info').textContent = 'Impossible de lire cette image.'; };
+    im.src = url;
+  }
+
+  // Valeurs affichées à côté des curseurs
+  ['brightness', 'contrast', 'gamma', 'sharpen', 'threshold', 'angle'].forEach((id) => {
+    const el = $(id), o = $('o-' + id);
+    const show = () => { o.textContent = id === 'gamma' ? (+el.value).toFixed(2) : id === 'sharpen' ? (+el.value).toFixed(1) : id === 'angle' ? (+el.value).toFixed(1) + '°' : el.value; };
+    el.addEventListener('input', () => { show(); schedule(); });
+  });
+  ['width', 'height', 'lock', 'dpi', 'invert', 'flip'].forEach((id) => $(id).addEventListener('input', schedule));
+  $('method').addEventListener('input', () => {
+    $('thr-row').classList.toggle('hidden', $('method').value !== 'threshold');
+    schedule();
+  });
+  $('file').addEventListener('change', (e) => loadFile(e.target.files[0]));
+
+  $('reset').addEventListener('click', () => {
+    rot = 0; base = null; cr = { x: 0, y: 0, w: 1, h: 1 }; $('preset').value = 'custom';
+    for (const k in DEFAULTS) {
+      const el = $(k);
+      if (typeof DEFAULTS[k] === 'boolean') el.checked = DEFAULTS[k]; else el.value = DEFAULTS[k];
+    }
+    ['brightness', 'contrast', 'gamma', 'sharpen', 'threshold', 'angle'].forEach((id) => $(id).dispatchEvent(new Event('input')));
+    $('method').dispatchEvent(new Event('input'));
+  });
+
+  // Image de travail : l'image d'origine après rotation (fond blanc dans les coins)
+  function buildBase() {
+    const odd = rot % 2 === 1, nw = img.naturalWidth, nh = img.naturalHeight;
+    let bw = odd ? nh : nw, bh = odd ? nw : nh;
+    const k = Math.min(1, 3000 / Math.max(bw, bh));
+    bw = Math.round(bw * k); bh = Math.round(bh * k);
+    base = document.createElement('canvas'); base.width = bw; base.height = bh;
+    const b = base.getContext('2d');
+    b.fillStyle = '#fff'; b.fillRect(0, 0, bw, bh);
+    b.imageSmoothingQuality = 'high';
+    b.translate(bw / 2, bh / 2);
+    b.rotate((rot * 90 + (+$('angle').value)) * Math.PI / 180);
+    const dw = odd ? bh : bw, dh = odd ? bw : bh;
+    b.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+  }
+
+  // Recadrage : le cadre est exprimé en fractions (0 à 1) de l'image de travail
+  const cstage = $('cstage'), cbox = $('cbox'), cc = $('cc');
+  let ccr = null, cw = 1, ch = 1, drag = null;
+  function fitRatio(r, k) {
+    if (!isFinite(k) || k <= 0) return r;
+    let w = r.w, h = r.h;
+    if (w / h > k) w = h * k; else h = w / k;
+    return { x: r.x + (r.w - w) / 2, y: r.y + (r.h - h) / 2, w: w, h: h };
+  }
+  function boxK() { return (+$('width').value / +$('height').value) / (base.width / base.height); }
+  function drawBox() {
+    cbox.style.left = ccr.x * cw + 'px'; cbox.style.top = ccr.y * ch + 'px';
+    cbox.style.width = ccr.w * cw + 'px'; cbox.style.height = ccr.h * ch + 'px';
+  }
+  function openCrop() {
+    if (!img) { $('info').textContent = 'Choisissez d\'abord une image.'; return; }
+    if (!base) buildBase();
+    const pane = $('cropper');
+    pane.classList.remove('hidden');
+    const sc = Math.min((pane.clientWidth - 32) / base.width, (pane.clientHeight - 110) / base.height);
+    cw = Math.max(50, Math.round(base.width * sc)); ch = Math.max(50, Math.round(base.height * sc));
+    cc.width = cw; cc.height = ch;
+    cc.getContext('2d').drawImage(base, 0, 0, cw, ch);
+    cstage.style.width = cw + 'px'; cstage.style.height = ch + 'px';
+    const free = $('lock').checked;
+    ccr = free ? { x: cr.x, y: cr.y, w: cr.w, h: cr.h } : fitRatio(cr, boxK());
+    $('chint').textContent = free ? 'Faites glisser le cadre ou ses coins : la hauteur suivra.' : 'Le cadre garde les proportions ' + $('width').value + ' × ' + $('height').value + ' mm.';
+    drawBox();
+  }
+  const closeCrop = () => $('cropper').classList.add('hidden');
+  const clampTo = (v, a, b) => Math.min(b, Math.max(a, v));
+  cbox.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); cbox.setPointerCapture(e.pointerId);
+    drag = { h: e.target.dataset.h || 'move', x: e.clientX, y: e.clientY, r: { x: ccr.x, y: ccr.y, w: ccr.w, h: ccr.h } };
+  });
+  cbox.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = (e.clientX - drag.x) / cw, dy = (e.clientY - drag.y) / ch, r = drag.r, h = drag.h;
+    if (h === 'move') {
+      ccr = { x: clampTo(r.x + dx, 0, 1 - r.w), y: clampTo(r.y + dy, 0, 1 - r.h), w: r.w, h: r.h };
+    } else if ($('lock').checked) {
+      let l = r.x, t = r.y, rr = r.x + r.w, b = r.y + r.h;
+      if (h.includes('w')) l = clampTo(l + dx, 0, rr - 0.05); else rr = clampTo(rr + dx, l + 0.05, 1);
+      if (h.includes('n')) t = clampTo(t + dy, 0, b - 0.05); else b = clampTo(b + dy, t + 0.05, 1);
+      ccr = { x: l, y: t, w: rr - l, h: b - t };
+    } else {
+      const k = boxK(), west = h.includes('w'), north = h.includes('n');
+      const ax = west ? r.x + r.w : r.x, ay = north ? r.y + r.h : r.y;
+      const px = (west ? r.x : r.x + r.w) + dx, py = (north ? r.y : r.y + r.h) + dy;
+      const maxW = Math.min(west ? ax : 1 - ax, (north ? ay : 1 - ay) * k);
+      const w = clampTo(Math.max(Math.abs(px - ax), Math.abs(py - ay) * k), 0.05, Math.max(0.05, maxW)), hh = w / k;
+      ccr = { x: west ? ax - w : ax, y: north ? ay - hh : ay, w: w, h: hh };
+    }
+    drawBox();
+  });
+  cbox.addEventListener('pointerup', () => { drag = null; });
+  cbox.addEventListener('pointercancel', () => { drag = null; });
+  $('crop').addEventListener('click', openCrop);
+  $('ccancel').addEventListener('click', closeCrop);
+  $('cfull').addEventListener('click', () => {
+    const all = { x: 0, y: 0, w: 1, h: 1 };
+    ccr = $('lock').checked ? all : fitRatio(all, boxK());
+    drawBox();
+  });
+  $('capply').addEventListener('click', () => { cr = { x: ccr.x, y: ccr.y, w: ccr.w, h: ccr.h }; closeCrop(); process(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCrop(); });
+  // Proportions conservées : modifier la hauteur recalcule la largeur
+  $('height').addEventListener('input', () => {
+    if (!img || !$('lock').checked) return;
+    if (!base) buildBase();
+    $('width').value = ((+$('height').value) * (cr.w * base.width) / (cr.h * base.height)).toFixed(1);
+  });
+
+  // Rotation par quarts de tour
+  $('rotl').addEventListener('click', () => { rot = (rot + 3) % 4; base = null; cr = { x: 0, y: 0, w: 1, h: 1 }; schedule(); });
+  $('rotr').addEventListener('click', () => { rot = (rot + 1) % 4; base = null; cr = { x: 0, y: 0, w: 1, h: 1 }; schedule(); });
+  $('angle').addEventListener('input', () => { base = null; });
+
+  // Préréglages par matériau (points de départ indicatifs)
+  const PRESETS = {
+    'bois-clair': { method: 'atkinson', dpi: 254, brightness: 5,  contrast: 25, gamma: 1.0, sharpen: 0.5, invert: false, flip: false },
+    'bois-fonce': { method: 'fs',       dpi: 254, brightness: 10, contrast: 30, gamma: 1.3, sharpen: 0.8, invert: false, flip: false },
+    'cuir':       { method: 'atkinson', dpi: 169, brightness: 10, contrast: 20, gamma: 1.2, sharpen: 0.3, invert: false, flip: false },
+    'carton':     { method: 'atkinson', dpi: 169, brightness: 15, contrast: 10, gamma: 1.2, sharpen: 0,   invert: false, flip: false },
+    'ardoise':    { method: 'fs',       dpi: 254, brightness: 0,  contrast: 25, gamma: 1.0, sharpen: 0.8, invert: true,  flip: false },
+    'verre':      { method: 'fs',       dpi: 339, brightness: 0,  contrast: 20, gamma: 1.0, sharpen: 0.5, invert: true,  flip: false },
+    'acrylique':  { method: 'fs',       dpi: 254, brightness: 0,  contrast: 20, gamma: 1.0, sharpen: 0.5, invert: true,  flip: true  },
+    'metal':      { method: 'fs',       dpi: 254, brightness: 0,  contrast: 30, gamma: 1.0, sharpen: 1.0, invert: true,  flip: false }
+  };
+  $('preset').addEventListener('input', () => {
+    const p = PRESETS[$('preset').value];
+    if (!p) return;
+    applying = true;
+    for (const k in p) {
+      const el = $(k);
+      if (typeof p[k] === 'boolean') el.checked = p[k]; else el.value = p[k];
+    }
+    ['brightness', 'contrast', 'gamma', 'sharpen'].forEach((id) => $(id).dispatchEvent(new Event('input')));
+    $('method').dispatchEvent(new Event('input'));
+    applying = false;
+    schedule();
+  });
+  ['dpi', 'brightness', 'contrast', 'gamma', 'sharpen', 'threshold', 'method', 'invert', 'flip'].forEach((id) =>
+    $(id).addEventListener('input', () => { if (!applying) $('preset').value = 'custom'; }));
+
+  // Export : PNG, JPEG ou BMP (1, 8 ou 24 bits)
+  function makeBMP(data, bits, dpi) {
+    const W = data.width, H = data.height, d = data.data;
+    const pal = bits === 1 ? 2 : bits === 8 ? 256 : 0;
+    const stride = (Math.ceil(W * bits / 8) + 3) & ~3;
+    const off = 54 + pal * 4, size = off + stride * H;
+    const buf = new ArrayBuffer(size), v = new DataView(buf), u = new Uint8Array(buf);
+    const ppm = Math.round(dpi / 0.0254);
+    u[0] = 0x42; u[1] = 0x4D;
+    v.setUint32(2, size, true); v.setUint32(10, off, true);
+    v.setUint32(14, 40, true); v.setInt32(18, W, true); v.setInt32(22, H, true);
+    v.setUint16(26, 1, true); v.setUint16(28, bits, true);
+    v.setUint32(34, stride * H, true); v.setInt32(38, ppm, true); v.setInt32(42, ppm, true);
+    v.setUint32(46, pal, true);
+    for (let i = 0; i < pal; i++) { const g = bits === 1 ? i * 255 : i, q = 54 + i * 4; u[q] = u[q+1] = u[q+2] = g; }
+    for (let y = 0; y < H; y++) {
+      const row = off + (H - 1 - y) * stride;
+      for (let x = 0; x < W; x++) {
+        const s = (y * W + x) * 4;
+        if (bits === 24) { u[row + x*3] = d[s+2]; u[row + x*3 + 1] = d[s+1]; u[row + x*3 + 2] = d[s]; }
+        else if (bits === 8) u[row + x] = d[s];
+        else if (d[s] > 127) u[row + (x >> 3)] |= 0x80 >> (x & 7);
+      }
+    }
+    return new Blob([buf], { type: 'image/bmp' });
+  }
+  function save(blob, ext) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name + '_gravure_' + $('dpi').value + 'dpi.' + ext;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  $('export').addEventListener('click', () => {
+    const f = $('fmt').value;
+    if (f === 'png') out.toBlob((b) => save(b, 'png'), 'image/png');
+    else if (f === 'jpg') out.toBlob((b) => save(b, 'jpg'), 'image/jpeg', 0.95);
+    else {
+      const bits = f === 'bmp1' ? 1 : f === 'bmp8' ? 8 : 24;
+      save(makeBMP(octx.getImageData(0, 0, out.width, out.height), bits, +$('dpi').value), 'bmp');
+      if (bits === 1 && $('method').value === 'gray') $('info').textContent = 'Le BMP 1 bit applique un seuil à 50 % : pour garder les niveaux de gris, choisissez BMP 8 bits.';
+    }
+  });
+
+  // ---------- G-code : balayage ligne par ligne ----------
+  let lastMM = null;
+  const num = (v) => String(+v.toFixed(3));
+  function gcodeOpts() {
+    const pct = (+$("g-pct").value || 0) / 100;
+    return {
+      feed: Math.max(10, +$("g-feed").value || 3000),
+      smax: Math.round((+$("g-smax").value || 1000) * pct * ($("g-dry").checked ? 0 : 1)),
+      ov: Math.max(0, +$("g-ov").value || 0),
+      passes: Math.max(1, ((+$("g-pass").value) | 0) || 1),
+      bidi: $("g-bidi").checked, m4: $("g-m4").checked, flipY: $("g-flipy").checked,
+      gray: $("method").value === "gray"
+    };
+  }
+  function genGcode(d, W, H, mmW, mmH, o) {
+    const px = mmW / W, py = mmH / H, L = o.gray ? 31 : 1;
+    const lvl = (v) => L === 1 ? (v < 128 ? 1 : 0) : Math.round((255 - v) / 255 * L);
+    const lines = ["; G-code raster", "; Taille " + num(mmW) + " x " + num(mmH) + " mm (" + W + " x " + H + " points)",
+      "; Zero : coin bas-gauche de l'image", "G21", "G90", (o.m4 ? "M4" : "M3") + " S0", "F" + o.feed];
+    let dist = 0, cx = 0;
+    const go = (x, sv) => { lines.push("G1 X" + num(x) + (sv === undefined ? "" : " S" + sv)); dist += Math.abs(x - cx); cx = x; };
+    for (let pass = 0; pass < o.passes; pass++) {
+      for (let r = 0; r < H; r++) {
+        const base = (o.flipY ? r : H - 1 - r) * W * 4, runs = [];
+        for (let x = 0; x < W; ) {
+          const lv = lvl(d[base + x * 4]);
+          let e = x + 1;
+          while (e < W && lvl(d[base + e * 4]) === lv) e++;
+          runs.push([x, e, lv]); x = e;
+        }
+        while (runs.length && !runs[0][2]) runs.shift();
+        while (runs.length && !runs[runs.length - 1][2]) runs.pop();
+        if (!runs.length) continue;
+        const fwd = !o.bidi || r % 2 === 0, seq = fwd ? runs : runs.slice().reverse();
+        const a = fwd ? seq[0][0] * px : seq[0][1] * px, dir = fwd ? 1 : -1;
+        lines.push("G0 X" + num(a - dir * o.ov) + " Y" + num((r + 0.5) * py));
+        cx = a - dir * o.ov;
+        if (o.ov > 0) go(a);
+        for (const sg of seq) go(fwd ? sg[1] * px : sg[0] * px, Math.round(sg[2] / L * o.smax));
+        if (o.ov > 0) go(cx + dir * o.ov, 0); else lines.push("S0");
+      }
+    }
+    lines.push("S0", "M5", "G0 X0 Y0");
+    return { lines: lines, seconds: dist / o.feed * 60 };
+  }
+  function buildGcode() {
+    const d = octx.getImageData(0, 0, out.width, out.height).data;
+    const g = genGcode(d, out.width, out.height, lastMM.w, lastMM.h, gcodeOpts());
+    const min = g.seconds / 60;
+    $("g-info").textContent = g.lines.length + " lignes, durée estimée : " + (min < 90 ? Math.round(min) + " min" : (min / 60).toFixed(1) + " h") + ". Zéro = coin bas-gauche de l'image ; laissez de la place autour pour le dépassement.";
+    return g;
+  }
+  $("g-save").addEventListener("click", () => {
+    if (!img || !lastMM) return;
+    save(new Blob([buildGcode().lines.join("\n") + "\n"], { type: "text/plain" }), "gcode");
+  });
+
+  // ---------- Envoi à la machine (Web Serial, GRBL) ----------
+  let port = null, writer = null, reader = null, poll = null, rxbuf = "";
+  let q = [], qh = 0, inflight = [], inflightSum = 0, running = false, total = 1, done = 0;
+  let gstate = "?", laserMode = "?", wco = [0, 0, 0], held = false, homeOK = null;
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const setState = (t) => { $("s-state").textContent = t; $("hstate").textContent = port ? t : ""; };
+  const msg = (t) => { $("s-msg").textContent = t; };
+  const log = (t) => {
+    const el = $("s-log");
+    el.textContent += t + "\n";
+    if (el.textContent.length > 20000) el.textContent = el.textContent.slice(-12000);
+    el.scrollTop = el.scrollHeight;
+  };
+  const cmd = (c) => { log("> " + c); enqueue([c]); };
+  const rt = (c) => { if (writer) writer.write(typeof c === "string" ? enc.encode(c) : c).catch(() => {}); };
+  function updateBtns() {
+    $("s-run").disabled = running; $("s-pause").disabled = !running;
+    $("s-pause").textContent = held ? "Reprendre" : "Pause"; $("s-pause").classList.toggle("on", held);
+  }
+  // Envoi « à compteur de caractères » : le tampon de GRBL fait 128 octets
+  function pump() {
+    while (writer && qh < q.length && inflightSum + q[qh].length + 1 <= 120) {
+      const l = q[qh++] + "\n";
+      inflight.push(l.length); inflightSum += l.length;
+      writer.write(enc.encode(l)).catch(() => {});
+    }
+  }
+  function enqueue(arr) { q = qh >= q.length ? arr : q.slice(qh).concat(arr); qh = 0; pump(); }
+  function stopAll(m) {
+    rt(new Uint8Array([0x18]));
+    q = []; qh = 0; inflight = []; inflightSum = 0; running = false; held = false; updateBtns();
+    msg(m || "Arrêt : machine réinitialisée. Faites un Home (ou « Déverrouiller ») avant de repartir.");
+  }
+  function ack(ok, m) {
+    if (inflight.length) inflightSum -= inflight.shift();
+    if (running) {
+      done++;
+      if (!ok) { stopAll("Erreur de la machine (" + m + ") vers la ligne " + done + " : gravure arrêtée."); return; }
+      $("s-prog").value = done / total * 100;
+    } else if (!ok) msg("Erreur : " + m);
+    pump();
+  }
+  function onLine(l) {
+    if (!l) return;
+    if (l[0] !== "<" && !(running && l === "ok")) log(l);
+    if (l[0] === "<") {
+      const f = l.slice(1, -1).split("|");
+      gstate = f[0].split(":")[0];
+      let w = null, p = null;
+      for (const x of f.slice(1)) {
+        if (x.startsWith("MPos:")) p = x.slice(5).split(",").map(Number);
+        else if (x.startsWith("WPos:")) w = x.slice(5).split(",").map(Number);
+        else if (x.startsWith("WCO:")) wco = x.slice(4).split(",").map(Number);
+      }
+      if (!w && p) w = p.map((v, i) => v - wco[i]);
+      setState(gstate + (w ? "   X " + w[0].toFixed(1) + "   Y " + w[1].toFixed(1) : "") + (running ? "   " + Math.round(done / total * 100) + " %" : ""));
+      if (running && qh >= q.length && !inflight.length && gstate === "Idle") {
+        running = false; updateBtns();
+        if ($("s-gohome").checked && homeOK) { msg("Gravure terminée : retour au Home…"); cmd("$H"); }
+        else msg("Gravure terminée.");
+      }
+    } else if (l === "ok") ack(true);
+    else if (l.startsWith("error")) ack(false, l);
+    else if (l.startsWith("ALARM")) { msg("Alarme : " + l + ". Faites un Home ou cliquez sur « Déverrouiller »."); if (running) stopAll("Alarme pendant la gravure : arrêt."); }
+    else if (l.startsWith("$32=")) {
+      laserMode = l.slice(4);
+      msg(laserMode === "1" ? "Connecté, mode laser actif." : "Attention : le mode laser ($32) est désactivé. Envoyez $32=1 avant de graver.");
+    } else if (l.startsWith("$22=")) homeOK = l.slice(4) === "1";
+    else if (l.startsWith("$30=")) $("g-smax").value = parseInt(l.slice(4), 10) || 1000;
+  }
+  async function readLoop() {
+    try {
+      for (;;) {
+        const r = await reader.read();
+        if (r.done) break;
+        rxbuf += dec.decode(r.value, { stream: true });
+        let i;
+        while ((i = rxbuf.indexOf("\n")) >= 0) { onLine(rxbuf.slice(0, i).trim()); rxbuf = rxbuf.slice(i + 1); }
+      }
+    } catch (e) { /* port fermé */ }
+  }
+  async function connect() {
+    if (!("serial" in navigator)) { msg("Ce navigateur ne gère pas l'USB série : utilisez Chrome ou Edge."); return; }
+    try { port = await navigator.serial.requestPort(); await port.open({ baudRate: 115200 }); }
+    catch (e) { port = null; msg("Connexion annulée ou impossible : " + ((e && e.message) || e)); return; }
+    writer = port.writable.getWriter(); reader = port.readable.getReader();
+    rxbuf = ""; q = []; qh = 0; inflight = []; inflightSum = 0; running = false; held = false; laserMode = "?"; gstate = "?"; homeOK = null;
+    $("s-conn").textContent = "Déconnecter"; $("s-conn").classList.add("on"); $("s-ctl").classList.remove("hidden"); $("s-stop2").classList.remove("hidden"); updateBtns();
+    readLoop(); poll = setInterval(() => rt("?"), 300);
+    setTimeout(() => cmd("$$"), 1500);
+    msg("Connexion en cours…");
+  }
+  async function disconnect() {
+    clearInterval(poll); running = false; q = []; qh = 0;
+    try { await reader.cancel(); } catch (e) { /* ignoré */ }
+    try { reader.releaseLock(); } catch (e) { /* ignoré */ }
+    try { writer.releaseLock(); await port.close(); } catch (e) { /* ignoré */ }
+    port = writer = reader = null; gstate = "?";
+    $("s-conn").textContent = "Connecter la machine"; $("s-conn").classList.remove("on"); $("s-ctl").classList.add("hidden"); $("s-stop2").classList.add("hidden"); setState("Non connecté."); msg("");
+  }
+  function ready(needLaser) {
+    if (!writer || running) return false;
+    if (gstate.startsWith("Alarm")) { msg("La machine est en alarme : faites un Home ou cliquez sur « Déverrouiller »."); return false; }
+    if (needLaser && gstate !== "Idle") { msg("La machine doit être au repos (Idle)."); return false; }
+    if (needLaser && laserMode !== "1") { msg("Mode laser ($32) non confirmé : vérifiez que $32=1 avant de graver."); return false; }
+    return true;
+  }
+  function frameLines(w, h) {
+    const fs = Math.round((+$("g-smax").value || 1000) * Math.min(5, +$("s-fpct").value || 0) / 100);
+    return ["G21", "G90", "M4 S0", "G0 X0 Y0", "G1 X" + num(w) + " F3000 S" + fs, "G1 Y" + num(h), "G1 X0", "G1 Y0", "S0", "M5"];
+  }
+  $("s-conn").addEventListener("click", () => { if (port) disconnect(); else connect(); });
+  if ("serial" in navigator) navigator.serial.addEventListener("disconnect", () => { if (port) disconnect(); });
+  document.querySelectorAll("[data-j]").forEach((b) => b.addEventListener("click", () => {
+    if (!ready(false)) return;
+    const a = b.dataset.j;
+    cmd("$J=G91 G21 " + a[0] + (a[1] === "-" ? "-" : "") + $("s-step").value + " F3000");
+  }));
+  $("s-zero").addEventListener("click", () => { if (ready(false)) cmd("G10 L20 P1 X0 Y0"); });
+  $("s-home").addEventListener("click", () => { if (ready(false)) cmd("G90 G0 X0 Y0"); });
+  $("s-unlock").addEventListener("click", () => { if (writer && !running) cmd("$X"); });
+  $("s-frame").addEventListener("click", () => { if (lastMM && ready(true)) { log("> tracé du cadre"); enqueue(frameLines(lastMM.w, lastMM.h)); } });
+  $("s-run").addEventListener("click", () => {
+    if (!img || !lastMM || !ready(true)) return;
+    const dry = $("g-dry").checked;
+    if (!confirm(dry ? "Test à blanc : la machine va se déplacer, laser éteint. Continuer ?" : "Le laser va graver. Lunettes de protection en place, zone dégagée, vous restez devant la machine. Lancer la gravure ?")) return;
+    const job = buildGcode().lines.filter((l) => l && l[0] !== ";");
+    running = true; held = false; total = job.length; done = 0; $("s-prog").value = 0; updateBtns();
+    msg("Gravure en cours : le bouton ARRÊT stoppe immédiatement la machine.");
+    log("> gravure : " + job.length + " lignes");
+    enqueue(job);
+  });
+  $("s-pause").addEventListener("click", () => { held = !held; rt(held ? "!" : "~"); updateBtns(); });
+  $("s-stop").addEventListener("click", () => stopAll());
+  $("s-stop2").addEventListener("click", () => stopAll());
+
+  // Navigation par onglets et retour visuel au clic
+  function showTab(name) {
+    document.querySelectorAll(".tab").forEach((t) => {
+      const on = t.dataset.tab === name;
+      t.classList.toggle("sel", on); t.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("hidden", p.dataset.pane !== name));
+    document.querySelector("aside").scrollTop = 0;
+  }
+  document.querySelectorAll("[data-tab]").forEach((t) => t.addEventListener("click", () => showTab(t.dataset.tab)));
+  document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.go)));
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b || b.disabled || b.classList.contains("tab")) return;
+    b.classList.add("flash"); setTimeout(() => b.classList.remove("flash"), 450);
+  });
+  $("s-hm").addEventListener("click", () => {
+    if (!writer || running) return;
+    if (homeOK === false) { msg("Le homing est désactivé sur la machine ($22=0) : activez-le avec $22=1."); return; }
+    msg("Home en cours…"); cmd("$H");
+  });
+  const sendConsole = () => {
+    const t = $("s-cmd").value.trim();
+    if (!t || !writer || running) return;
+    $("s-cmd").value = ""; cmd(t);
+  };
+  $("s-send").addEventListener("click", sendConsole);
+  $("s-cmd").addEventListener("keydown", (e) => { if (e.key === "Enter") sendConsole(); });
+
+
+  // ---------- Zoom de l'aperçu ----------
+  let zmode = "fit", zscale = 1, zcur = 1, pan = null;
+  const mainEl = $("main");
+  function fitScale() {
+    const aw = mainEl.clientWidth - 90, ah = mainEl.clientHeight - $("zbar").offsetHeight - 90;
+    return Math.max(0.02, Math.min(aw / out.width, ah / out.height, 4));
+  }
+  function applyZoom() {
+    if (!img || !out.width) return;
+    zcur = zmode === "fit" ? fitScale() : zscale;
+    out.style.width = Math.round(out.width * zcur) + "px";
+    out.style.height = Math.round(out.height * zcur) + "px";
+    out.style.imageRendering = zcur >= 2 ? "pixelated" : "auto";
+    $("z-val").textContent = Math.round(zcur * 100) + " %";
+  }
+  function zoomBy(f, cx, cy) {
+    if (!img) return;
+    const r0 = out.getBoundingClientRect(), m = mainEl.getBoundingClientRect();
+    if (cx === undefined) { cx = m.left + mainEl.clientWidth / 2; cy = m.top + mainEl.clientHeight / 2; }
+    const fx = (cx - r0.left) / r0.width, fy = (cy - r0.top) / r0.height;
+    zmode = "manual"; zscale = Math.min(16, Math.max(0.02, zcur * f));
+    applyZoom();
+    const r1 = out.getBoundingClientRect();
+    mainEl.scrollLeft += (r1.left + fx * r1.width) - cx;
+    mainEl.scrollTop += (r1.top + fy * r1.height) - cy;
+  }
+  $("z-in").addEventListener("click", () => zoomBy(1.25));
+  $("z-out").addEventListener("click", () => zoomBy(0.8));
+  $("z-100").addEventListener("click", () => zoomBy(1 / zcur));
+  $("z-fit").addEventListener("click", () => { zmode = "fit"; applyZoom(); mainEl.scrollLeft = 0; mainEl.scrollTop = 0; });
+  window.addEventListener("resize", () => { if (zmode === "fit") applyZoom(); });
+  mainEl.addEventListener("wheel", (e) => {
+    if (!img || !(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY);
+  }, { passive: false });
+  document.addEventListener("keydown", (e) => {
+    if (!img || /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName) || !$("cropper").classList.contains("hidden")) return;
+    if (e.key === "+" || e.key === "=") zoomBy(1.25);
+    else if (e.key === "-") zoomBy(0.8);
+    else if (e.key === "0") $("z-fit").click();
+  });
+  // Déplacement de l'image à la souris quand elle dépasse la fenêtre
+  out.addEventListener("pointerdown", (e) => {
+    pan = { x: e.clientX, y: e.clientY, l: mainEl.scrollLeft, t: mainEl.scrollTop };
+    out.setPointerCapture(e.pointerId); out.style.cursor = "grabbing";
+  });
+  out.addEventListener("pointermove", (e) => {
+    if (!pan) return;
+    mainEl.scrollLeft = pan.l - (e.clientX - pan.x); mainEl.scrollTop = pan.t - (e.clientY - pan.y);
+  });
+  const endPan = () => { pan = null; out.style.cursor = "grab"; };
+  out.addEventListener("pointerup", endPan);
+  out.addEventListener("pointercancel", endPan);
+
+  // Glisser-déposer
+  const main = $('main'), drop = $('drop');
+  main.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  main.addEventListener('dragleave', () => drop.classList.remove('over'));
+  main.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); loadFile(e.dataTransfer.files[0]); });
+})();
+</script>
+</body>
+</html>
